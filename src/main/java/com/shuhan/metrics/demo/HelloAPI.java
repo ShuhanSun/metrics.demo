@@ -25,8 +25,7 @@ public class HelloAPI {
     private static final Timer TIMER_SAMPLE = Metrics.timer("hello.timer.sample", Tags.of("func", "hello"));
     private static final Timer TIMER_PERCENTILES = Timer.builder("hello.timer.percentiles")
             .tag("func", "hello")
-            .publishPercentiles(0.5, 0.95, 0.99) // This is used to publish percentile values computed in your app.
-//            .publishPercentileHistogram() // This is used to publish a histogram suitable for computing aggregable (across dimensions, aka tags) percentile approximations
+            .publishPercentiles(0.5, 0.95, 0.99)
             .register(Metrics.globalRegistry);
 
     /**
