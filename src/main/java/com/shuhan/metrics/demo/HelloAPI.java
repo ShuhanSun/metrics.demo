@@ -30,10 +30,9 @@ public class HelloAPI {
 
         String funcResult;
         try {
-            // func is the function to execute and measure the execution time.
-            // return the result of func
-            // throw exception if param is no empty
-            funcResult = TIMER.record(() -> func(param));
+            // pass the function as the param to execute and measure the execution time.
+            // record method return the result of function we pass
+            funcResult = TIMER.record(() -> doSomething(param));
         }
         catch (Exception e) {
             // Counter 2 of exception
@@ -51,7 +50,7 @@ public class HelloAPI {
     public String helloTimer2() {
         // Storing start state in Timer.Sample
         Timer.Sample start = Timer.start();
-        func("test");
+        doSomething("test");
         start.stop(TIMER_SAMPLE);
         return "hello.timer.sample";
     }
@@ -60,7 +59,7 @@ public class HelloAPI {
     @Timed(value = "hello.timer.annotation")
     @GetMapping("/hello/timer3")
     public String helloTimer3() {
-        func("test");
+        doSomething("test");
         return "hello.timer.annotation";
     }
 
@@ -88,8 +87,8 @@ public class HelloAPI {
      * 3. Gauge
      */
     private static final List<String> LIST = Metrics.gaugeCollectionSize("hello.list.gauge", Tags.of("func", "hello"), new ArrayList<>());
-    //    private static final List<String> LIST = Metrics.globalRegistry.gauge("hello.list.gauge", Tags.of("func", "hello"), new ArrayList<>(), List::size);
-    //    private static final Map<String, Integer> MAP = Metrics.gaugeMapSize("hello.list.gauge", Tags.of("func", "hello"), new HashMap<>());
+//        private static final List<String> LIST = Metrics.globalRegistry.gauge("hello.list.gauge", Tags.of("func", "hello"), new ArrayList<>(), List::size);
+//        private static final Map<String, Integer> MAP = Metrics.gaugeMapSize("hello.list.gauge", Tags.of("func", "hello"), new HashMap<>());
 
     @GetMapping("/gauge/add")
     public String addList() {
@@ -110,9 +109,9 @@ public class HelloAPI {
      * the function to execute and measure the execution time.
      * @param param param
      * @return result
-     * @throws InvalidParameterException no param
+     * @throws InvalidParameterException throws exception if the param is empty
      */
-    private String func(final String param) throws InvalidParameterException {
+    private String doSomething(final String param) throws InvalidParameterException {
         if (param == null || param.length() == 0) {
             throw new InvalidParameterException();
         }
