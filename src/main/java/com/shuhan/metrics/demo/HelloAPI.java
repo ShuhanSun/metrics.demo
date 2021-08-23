@@ -3,12 +3,16 @@ package com.shuhan.metrics.demo;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.*;
 import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.InvalidParameterException;
+import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.*;
 
 @RestController
 public class HelloAPI {
@@ -43,8 +47,10 @@ public class HelloAPI {
         return funcResult;
     }
 
-    /** Timer 2: Sample */
-    private static final Timer TIMER_SAMPLE = Metrics.timer("hello.timer.sample", Tags.of("func", "hello"));
+    /**
+     * Timer 2: Sample
+     */
+    private static final Timer TIMER_SAMPLE = Metrics.timer("hello.timer.sample", Tags.of("func", "helloTimer2"));
 
     @GetMapping("/hello/timer2")
     public String helloTimer2() {
@@ -55,7 +61,9 @@ public class HelloAPI {
         return "hello.timer.sample";
     }
 
-    /** Timer 3: annotation {@code TimedConfiguration} */
+    /**
+     * Timer 3: annotation {@code TimedConfiguration}
+     */
     @Timed(value = "hello.timer.annotation")
     @GetMapping("/hello/timer3")
     public String helloTimer3() {
@@ -63,9 +71,11 @@ public class HelloAPI {
         return "hello.timer.annotation";
     }
 
-    /** Timer 4: percentiles */
+    /**
+     * Timer 4: percentiles
+     */
     private static final Timer TIMER_PERCENTILES = Timer.builder("hello.timer.percentiles")
-            .tag("func", "hello")
+            .tag("func", "helloTimer4")
             .publishPercentiles(0.5, 0.95, 0.99)
             .register(Metrics.globalRegistry);
 
@@ -86,9 +96,9 @@ public class HelloAPI {
     /**
      * 3. Gauge
      */
-    private static final List<String> LIST = Metrics.gaugeCollectionSize("hello.list.gauge", Tags.of("func", "hello"), new ArrayList<>());
-//        private static final List<String> LIST = Metrics.globalRegistry.gauge("hello.list.gauge", Tags.of("func", "hello"), new ArrayList<>(), List::size);
-//        private static final Map<String, Integer> MAP = Metrics.gaugeMapSize("hello.list.gauge", Tags.of("func", "hello"), new HashMap<>());
+    private static final List<String> LIST = Metrics.gaugeCollectionSize("hello.list.gauge", Tags.of("func", "gauge"), new ArrayList<>());
+    //        private static final List<String> LIST = Metrics.globalRegistry.gauge("hello.list.gauge", Tags.of("func", "hello"), new ArrayList<>(), List::size);
+    //        private static final Map<String, Integer> MAP = Metrics.gaugeMapSize("hello.list.gauge", Tags.of("func", "hello"), new HashMap<>());
 
     @GetMapping("/gauge/add")
     public String addList() {
@@ -105,8 +115,25 @@ public class HelloAPI {
         return "LIST size is : " + LIST.size();
     }
 
+    private final static ExecutorService executorService = ExecutorServiceMetrics.monitor(Metrics.globalRegistry,
+            new ThreadPoolExecutor(5, 10, 600L, TimeUnit.SECONDS, new ArrayBlockingQueue<>(5)),
+            "demo.executor", Tags.of("func", "gaugeThread"));
+
+    @GetMapping("/gauge/thread")
+    public String gaugeThread() {
+        executorService.submit(() -> {
+            try {
+                Thread.sleep(600000);// 10 mins
+            }
+            catch (InterruptedException ignored) {
+            }
+        });
+        return "submit success";
+    }
+
     /**
      * the function to execute and measure the execution time.
+     *
      * @param param param
      * @return result
      * @throws InvalidParameterException throws exception if the param is empty
