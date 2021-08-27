@@ -1,18 +1,27 @@
 ## What are metrics ?
 
-Metrics are numeric measurements, time series mean that changes are recorded over time. 
+Metrics helps to understand why your application is working in a certain way. 
 
-For a web server it might be request times, for a database it might be number of active connections or number of active queries etc.
+Lets assume we are running a web application. We need some information to find out what is happening with our application which is slow.
 
->  Metrics play an important role in understanding why your application is working in a certain way. 
->
-> Lets assume you are running a web application and find that the application is slow. You will need some information to find out what is happening with your application.
->
->  For example the application can become slow when the number of requests are high. If you have the request count metric you can spot the reason and increase the number of servers to handle the load.
+For example the application can become slow when the number of requests are high. 
+
+If you have the request count metric you can spot the reason and increase the number of servers to handle the load.
 
 
 
-## Micrometer
+## How the metrics monitor system works ?
+We will add metrics and display them in a dashboard in local, to see how it works.
+
+- Step 1: Add metrics in our application by **Micrometer** Prometheus. It will collect the data and expose the metrics in a endpoint in our application.
+- Step 2: Start **Prometheus** server, It collects metrics from application instances periodically and **stores** metrics.  
+- Step 3: Start **Grafana** which is a visualization platform, add panels for metrics by PromQL
+
+> The metrics monittor system is called Sherlock.io in eBay. 
+
+
+
+## 1. Micrometer
 
 Micrometer is a metrics instrumentation library. Like SLF4J, but for application metrics !
 
@@ -21,54 +30,26 @@ https://micrometer.io/
 ### Common categories of metric
 
 ####  1. Counter
-Counters report a single metric, a count, it can increment by a fixed positive amount.
+The counter metric type is used for any value that **increases** by a fixed positive amount.
 
 For example:
 
 - number of requests served
 - tasks completed
-- errors.
+- number of errors.
 
 #### 2. Timer
-Timer measuring short-duration latencies, and the frequency of such events.
+Timer is used to measure the short-duration latencies
 
 For example:
 
 - request latency to a web server
 - execution time of a small task
 
-The most commonly used statistics about timers:
-
-1. Average latency: `rate(timer_sum[10s])/rate(timer_count[10s])`
-
-2. Throughput (requests per second): `rate(timer_count[10s])`
-
-##### Histograms and percentiles
-
-Timers and distribution summaries support collecting data to observe their percentile distributions
-
-- **Percentile histograms**
-
-  Micrometer accumulates values to an underlying histogram and ships a predetermined set of buckets to the monitoring system. The monitoring system’s query language is responsible for calculating percentiles off of this histogram. 
-
-- **Client-side percentiles**
-
-  Micrometer computes a percentile approximation for each meter ID (set of name and tags) and ships the percentile value to the monitoring system. 
-
-  This is not as flexible as a percentile histogram because it is not possible to aggregate percentile approximations across tags.
-
-```java
-Timer.builder("my.timer")
-   .publishPercentiles(0.5, 0.95) // median and 95th percentile. This is used to publish percentile values computed in your app. 
-  .publishPercentileHistogram() // This is used to publish a histogram suitable for computing aggregable (across dimensions) percentile approximations 
-```
-
-
-
 #### 3. Gauge
-A *gauge* is a metric that represents a single numerical value that can arbitrarily go up and down.
+The gauge metric type can be used for values that go up and down.
 
-Typical examples:
+For example:
 
 - size of a collection or map
 - number of threads in a running state.
@@ -78,13 +59,27 @@ Typical examples:
 
 #### [Dome code](https://github.com/ShuhanSun/metrics.demo)
 
+Run dome code and request
+
+- Conter and Timer: http://localhost:8080/hello?param=aaa
+- Timer for sample: http://localhost:8080/hello/timer2
+- Timer for annotaion: http://localhost:8080/hello/timer3
+- Timer for percentiles: http://localhost:8080/hello/timer4
+- Gauge add: http://localhost:8080/gauge/add
+- Gauge remove: http://localhost:8080/gauge/remove
+- Gauge thread : http://localhost:8080/gauge/thread
+
+The Metrics exposed: http://localhost:8080/actuator/prometheus
 
 
-## Prometheus
+
+## 2. Prometheus
 
 Prometheus is a monitoring system and in-memory dimensional time series database. 
 
-It **collects** (by pull model) metrics from application instances periodically and **stores** metrics as **time series data**. 
+It **collects** (by pull model) metrics from application instances periodically and **stores** metrics as **time series data**.  
+
+> **Time series** mean that changes are recorded over time. 
 
 https://prometheus.io/
 
@@ -96,8 +91,8 @@ Update the config file "prometheus.yml"
 
 ```yml
 global:
-  scrape_interval:     15s
-  evaluation_interval: 15s 
+  scrape_interval:     5s
+  evaluation_interval: 5s 
 scrape_configs:
   - job_name: 'metrics-demo-local'
     metrics_path: '/actuator/prometheus'
@@ -116,13 +111,13 @@ Start the prometheus server
 
 #### PromQL
 
-It provides PromQL to query the metrics.
+It provides [PromQL](https://prometheus.io/docs/prometheus/latest/querying/basics/) to query the metrics.
 
 
 
-## Grafana
+## 3. Grafana
 
-It is a visualization platform for dashboards and metrics. It is called Sherlock.io in eBay
+It is a visualization platform for dashboards and metrics. 
 
 - https://grafana.com/
 
@@ -140,6 +135,8 @@ brew services stop grafana
 
 http://localhost:3000/
 
+admin - admin
+
 #### Add Data source of Prometheus 
 
 Prometheus - http://localhost:9090
@@ -148,9 +145,10 @@ Prometheus - http://localhost:9090
 
 PromQL query
 
+-  query to calculate the per second rate of requests averaged over the last 5 minutes:
 
+```
+rate(request_count[5m])
+```
 
-> Add alerting
-> add norification channels
-Type: Email, Pagerduty, Slack
-
+> the *rate* function calculates the per second rate of increase averaged over the provided time interval. It can only be used with counters.
