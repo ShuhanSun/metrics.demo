@@ -17,8 +17,6 @@ We will add metrics and display them in a dashboard in local, to see how it work
 - Step 2: Start **Prometheus** server, It collects metrics from application instances periodically and **stores** metrics.  
 - Step 3: Start **Grafana** which is a visualization platform, add panels for metrics by PromQL
 
-> The metrics monittor system is called Sherlock.io in eBay. 
-
 
 
 ## 1. Micrometer
